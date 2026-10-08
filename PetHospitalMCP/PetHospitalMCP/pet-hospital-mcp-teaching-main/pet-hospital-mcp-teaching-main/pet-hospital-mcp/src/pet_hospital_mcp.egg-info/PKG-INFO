@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: pet-hospital-mcp
+Version: 0.1.0
+Summary: MCP server exposing the Pet Hospital Go REST API to AI agents (SDK 2.x, 2026-07-28).
+Author: Pet Hospital MCP Teaching
+License: MIT
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: mcp==2.0.0
+Requires-Dist: httpx<1.0,>=0.27
+Requires-Dist: pydantic<3.0,>=2.7
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23; extra == "dev"
