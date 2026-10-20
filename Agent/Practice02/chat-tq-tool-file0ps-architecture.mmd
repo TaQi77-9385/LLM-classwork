@@ -1,0 +1,110 @@
+%% ============================================================
+%% chat-tq-tool-file0ps.py 代码架构图 · 图 1 分层架构
+%% 一个「流式 Chat Completions + Function Calling」的本地文件操作 Agent
+%% 一个 .mmd 只能包含一张图，否则后续图会被当成这张流程图的节点
+%% 图 2 时序：chat-tq-tool-file0ps-sequence.mmd
+%% 图 3 状态机：chat-tq-tool-file0ps-state.mmd
+%% 图 4 工具分组：chat-tq-tool-file0ps-tools.mmd
+%% 四张图一起预览：chat-tq-tool-file0ps-architecture.md
+%% ============================================================
+
+%% ============================================================
+%% 图 1：整体分层与依赖
+%% ============================================================
+flowchart TB
+    subgraph L0["外部依赖 / 基础设施"]
+        direction LR
+        CFG[("config.ini<br/>[llm] api_key / base_url / model")]
+        ENV["环境变量与 ~<br/>os.path.expandvars / expanduser"]
+        LLM["LLM 服务<br/>{base_url}/chat/completions<br/>OpenAI 兼容 · SSE 流式"]
+        FS[("本地文件系统<br/>目录 / 纯文本文件")]
+        MIME["mimetypes<br/>扩展名 → MIME 推测"]
+    end
+
+    subgraph L1["配置层"]
+        INIT["configparser 初始化<br/>cfg.read('config.ini', utf-8)"]
+        CONST["常量<br/>MAX_TEXT_BYTES = 1024 * 1024"]
+    end
+
+    subgraph L2["工具声明层 · tools（10 个 JSON Schema）"]
+        direction LR
+        T1["读：getCwd / listDir<br/>getFileType / readFile"]
+        T2["写：createFile / editFile<br/>createDir"]
+        T3["删：deleteFile / deleteDir"]
+        T4["改名：renamePath"]
+        REG["HANDLERS 注册表<br/>name → Python 函数"]
+    end
+
+    subgraph L3["工具实现层 · 纯函数（统一返回 str）"]
+        direction LR
+        U1["路径归一化<br/>_as_path()"]
+        U2["纯文本判定<br/>_plain_text_error()"]
+        U3["10 个 handler"]
+        U4["错误以文案返回<br/>不向调用方抛异常"]
+    end
+
+    subgraph L4["调度层"]
+        RUN["run_tool(call)<br/>HANDLERS 分发 + JSON 解析 arguments"]
+        ERRM["异常转文案<br/>TypeError → 参数错误<br/>OSError → 操作失败<br/>未注册 → 未知工具"]
+    end
+
+    subgraph L5["通信层 · ask(messages)"]
+        REQ["requests.post(stream=True, timeout=60)<br/>headers: Bearer api_key<br/>body: model + messages + tools + stream"]
+        SSE["SSE 行解析<br/>过滤 'data: ' 前缀 / 遇 [DONE] 结束"]
+        ACC["累积器<br/>answer += delta.content<br/>calls[index] += tool_calls 分片"]
+        OUT["返回 (answer, calls[])<br/>content 实时 print 到终端"]
+    end
+
+    subgraph L6["主流程 · __main__"]
+        M1["input('你: ') → 初始化 messages"]
+        M2{"ask() 是否返回<br/>tool_calls？"}
+        M3["追加 assistant 消息<br/>content + tool_calls"]
+        M4["逐条 run_tool → 追加 role=tool<br/>携带 tool_call_id"]
+        M5["本轮结束<br/>等待下一次输入 / 退出"]
+    end
+
+    CFG --> INIT --> CONST
+    INIT --> REQ
+    CONST --> U2
+    T1 --> REG
+    T2 --> REG
+    T3 --> REG
+    T4 --> REG
+    REG --> RUN
+    U1 --> U3
+    U2 --> U3
+    U3 --> U4
+    U3 --> ERRM
+    RUN --> U3
+    MIME --> U3
+    ENV --> U1
+    FS <--> U3
+    RUN --> M4
+
+    REQ --> SSE --> ACC --> OUT
+    OUT --> M2
+    LLM <-->|"HTTP POST / SSE chunk"| REQ
+    M1 --> M2
+    M2 -->|"有：需要执行工具"| M3
+    M3 --> M4
+    M4 -->|"tool 结果回灌 messages，再次 ask"| M2
+    M2 -->|"无：模型给出最终答复"| M5
+
+    T1 -.->|"tools 随每次请求下发"| REQ
+    T2 -.-> REQ
+    T3 -.-> REQ
+    T4 -.-> REQ
+
+    classDef ext fill:#eef3ff,stroke:#5b7bd5,color:#1b2b4b;
+    classDef cfg fill:#fff6e0,stroke:#d8a13a,color:#4a3410;
+    classDef tool fill:#eaf7ee,stroke:#3f9a5d,color:#123a22;
+    classDef impl fill:#f2ecff,stroke:#7c5bd0,color:#2b1a4b;
+    classDef comm fill:#ffecec,stroke:#d05b5b,color:#4b1b1b;
+    classDef flow fill:#e6f7f9,stroke:#2e8f9e,color:#0c3a42;
+
+    class CFG,ENV,LLM,FS,MIME ext;
+    class INIT,CONST cfg;
+    class T1,T2,T3,T4,REG tool;
+    class U1,U2,U3,U4,RUN,ERRM impl;
+    class REQ,SSE,ACC,OUT comm;
+    class M1,M2,M3,M4,M5 flow;
