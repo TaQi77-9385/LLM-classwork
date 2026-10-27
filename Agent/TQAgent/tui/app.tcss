@@ -1,0 +1,83 @@
+Screen {
+    layout: vertical;
+    background: #121418;
+}
+
+#body {
+    height: 1fr;
+}
+
+#main {
+    width: 1fr;
+    height: 1fr;
+}
+
+#banner {
+    height: auto;
+    margin: 1 1 0 1;
+    padding: 0 1;
+    border: round #3d5a80;
+    background: #171c24;
+}
+
+#transcript {
+    height: 1fr;
+    padding: 1 1 0 1;
+    background: #121418;
+}
+
+#prompt {
+    margin: 0 1 1 1;
+    border: tall #c47b2d;
+    background: #1a1e26;
+}
+
+#sidebar {
+    width: 38;
+    height: 1fr;
+    padding: 1 1;
+    background: #10141b;
+    border-left: solid #2c3440;
+}
+
+#sidebar.-hidden {
+    display: none;
+}
+
+#statusbar {
+    height: 1;
+    padding: 0 2;
+    color: #9aa4b2;
+    background: #0e1116;
+}
+
+.msg {
+    height: auto;
+    margin: 0 0 1 0;
+}
+
+.tool-card {
+    margin: 0 0 1 0;
+    background: #15211d;
+    border-left: thick #2a9d8f;
+}
+
+.tool-card.-error {
+    background: #241616;
+    border-left: thick #e76f51;
+}
+
+.tool-body {
+    padding: 0 1 1 1;
+    color: #d7dde6;
+}
+
+#help-dialog {
+    width: 78;
+    height: auto;
+    max-height: 90%;
+    margin: 1 2;
+    padding: 1 2;
+    background: #161b22;
+    border: round #3d5a80;
+}
