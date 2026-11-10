@@ -17,6 +17,7 @@ class StreamState:
     answer: str = ""
     calls: dict = field(default_factory=dict)
     done: bool = False
+    usage: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -28,6 +29,7 @@ class LlmText:
 class LlmDone:
     answer: str
     calls: list
+    usage: dict | None = None
 
 
 def feed(state: StreamState, line: bytes) -> str | None:
@@ -39,9 +41,24 @@ def feed(state: StreamState, line: bytes) -> str | None:
         return None
     try:
         payload = json.loads(data)
-        choice = payload["choices"][0]
-    except (json.JSONDecodeError, KeyError, IndexError, TypeError) as exc:
+    except json.JSONDecodeError as exc:
         raise ChatError(f"无法解析模型响应: {exc}") from exc
+
+    usage = payload.get("usage")
+    if isinstance(usage, dict):
+        state.usage = usage
+
+    choices = payload.get("choices") or []
+    if not choices:
+        # 仅含 usage 的收尾块是正常的
+        if isinstance(usage, dict):
+            return None
+        raise ChatError("无法解析模型响应: 缺少 choices")
+    try:
+        choice = choices[0]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise ChatError(f"无法解析模型响应: {exc}") from exc
+
     delta = choice.get("delta") or {}
     if not isinstance(delta, dict):
         delta = {}
@@ -75,37 +92,67 @@ class ChatClient:
         self.settings = settings
         self.tools = tools
 
-    def stream(self, messages: list):
+    def stream(self, messages: list, *, use_tools: bool = True):
         url = self.settings.base_url.rstrip("/") + "/chat/completions"
-        try:
-            resp = requests.post(
-                url,
-                headers={"Authorization": "Bearer " + self.settings.api_key},
-                json={
-                    "model": self.settings.model,
-                    "messages": messages,
-                    "tools": self.tools,
-                    "stream": True,
-                },
-                stream=True,
-                timeout=(10, 30),
-            )
-            resp.raise_for_status()
-        except requests.RequestException as exc:
-            detail = ""
-            response = getattr(exc, "response", None)
-            if response is not None and getattr(response, "text", ""):
-                detail = " " + response.text[:300]
-            raise ChatError(f"模型请求失败: {exc}{detail}") from exc
+        body = {
+            "model": self.settings.model,
+            "messages": messages,
+            "stream": True,
+            "stream_options": {"include_usage": True},
+        }
+        if use_tools and self.tools:
+            body["tools"] = self.tools
 
+        resp = self._open_stream(url, body)
         state = StreamState()
         try:
             for line in resp.iter_lines():
                 text = feed(state, line)
                 if text:
                     yield LlmText(text)
-                if state.done:
-                    break
         finally:
             resp.close()
-        yield LlmDone(state.answer, [state.calls[i] for i in sorted(state.calls)])
+        yield LlmDone(
+            state.answer,
+            [state.calls[i] for i in sorted(state.calls)],
+            state.usage,
+        )
+
+    def _open_stream(self, url: str, body: dict):
+        headers = {"Authorization": "Bearer " + self.settings.api_key}
+        try:
+            timeout = (
+                int(getattr(self.settings, "connect_timeout", 10) or 10),
+                int(getattr(self.settings, "read_timeout", 120) or 120),
+            )
+            resp = requests.post(url, headers=headers, json=body, stream=True, timeout=timeout)
+            resp.raise_for_status()
+            return resp
+        except requests.RequestException as exc:
+            response = getattr(exc, "response", None)
+            can_retry = (
+                "stream_options" in body
+                and response is not None
+                and response.status_code in {400, 422}
+            )
+            if not can_retry:
+                detail = ""
+                if response is not None and getattr(response, "text", ""):
+                    detail = " " + response.text[:300]
+                raise ChatError(f"模型请求失败: {exc}{detail}") from exc
+            body = dict(body)
+            body.pop("stream_options", None)
+            try:
+                timeout = (
+                    int(getattr(self.settings, "connect_timeout", 10) or 10),
+                    int(getattr(self.settings, "read_timeout", 120) or 120),
+                )
+                resp = requests.post(url, headers=headers, json=body, stream=True, timeout=timeout)
+                resp.raise_for_status()
+                return resp
+            except requests.RequestException as retry_exc:
+                detail = ""
+                response = getattr(retry_exc, "response", None)
+                if response is not None and getattr(response, "text", ""):
+                    detail = " " + response.text[:300]
+                raise ChatError(f"模型请求失败: {retry_exc}{detail}") from retry_exc

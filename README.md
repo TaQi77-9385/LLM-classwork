@@ -3,8 +3,8 @@
 本仓库是围绕 **大模型应用 / Agent / MCP** 的一组教学实践代码，包含从「最简对话脚本」到
 「带工具调用的 Agent 循环」，再到「MCP 服务器」与「完整 REST 服务」的递进式示例。
 
-> 说明：`Agent/Practice01`、`Agent/Practice02` 中的 `config.ini` 存放 API Key，已在各自
-> `.gitignore` 中排除，请勿提交；示例 Key 请自行替换为你自己的。
+> 说明：`Agent/Practice01`、`Agent/Practice02`、`Agent/TQAgent` 中的 `config.ini` 存放 API Key，
+> 已在各自 `.gitignore` 中排除，请勿提交；示例 Key 请自行替换为你自己的。
 
 ---
 
@@ -12,11 +12,35 @@
 
 | 目录 | 内容 | 技术栈 |
 | --- | --- | --- |
+| [`Agent/TQAgent`](#agenttqagent--终端本地-agent) | **分层终端 Agent：16 个工具、技能、MCP、上下文压缩** | Python · Textual · Function Calling · MCP |
 | [`Agent/Practice01`](#agentpractice01--最小对话与实验循环) | 最简流式对话、日期工具调用实验 | Python · requests · SSE |
 | [`Agent/Practice02`](#agentpractice02--本地文件操作-agent) | **本地文件操作 Agent（10 个工具）** | Python · Function Calling · SSE |
 | [`anythingLLMWebPage`](#anythingllmwebpage--网页上传文档) | 网页上传文档到 AnythingLLM 并向量化 | 原生 HTML / JS · Fetch |
 | [`anythingLLMMCP`](#anythingllmmcp--mcp-服务器) | 读取 AnythingLLM 工作区文件信息的 MCP 服务器 | Python 标准库 · JSON-RPC |
 | [`PetHospitalMCP/PetHospitalMCP`](#pethospitalmcppethospitalmcp--宠物医院-rest-api) | Go 标准库实现的宠物医院 REST API | Go 1.22+ · 内嵌网页 |
+
+---
+
+## Agent/TQAgent · 终端本地 Agent
+
+`Agent/TQAgent` 是 `Practice02` 的分层重构版：`core/` 负责配置、流式请求、工具循环、
+工具实现、技能、MCP 客户端、上下文压缩与会话存储，`tui/` 用 Textual 提供终端界面。
+
+- **16 个本地工具**：10 个文件/目录操作 + 网页搜索、网页正文提取、命令行执行、
+  技能加载/创建、历史上下文检索；MCP 工具连接后动态追加
+- **技能**：`.agents/skills/<name>/SKILL.md`，启动时只注入名称与描述，按需加载正文
+- **MCP 客户端**：stdio 与 Streamable HTTP，配置项目根目录的 `.mcp.json`，单服务器失败不影响其他工具
+- **长期规则**：读取项目根目录 `AGENTS.md` 并注入会话
+- **会话能力**：保存 / 恢复、上下文压缩、归档检索
+
+```bash
+cd Agent/TQAgent
+pip install -r requirements.txt
+python main.py
+```
+
+配置项、工具参数、技能格式、MCP 配置与快捷键说明见
+[`Agent/TQAgent/README.md`](Agent/TQAgent/README.md)。
 
 ---
 
@@ -185,6 +209,7 @@ go run . -seed -count 2000     # 灌入模拟数据并启动
 
 | 项目 | 运行时 | 依赖 |
 | --- | --- | --- |
+| TQAgent | Python 3.10+ | `requests`、`textual`、`trafilatura`、`mcp`；`fetchWeb` 需 `curl` |
 | Practice01 / Practice02 | Python 3.8+ | `requests`；`getDate` 工具需 PowerShell（Windows） |
 | anythingLLMWebPage | 现代浏览器 | 需可访问的 AnythingLLM 实例 |
 | anythingLLMMCP | Python 3.8+ | 仅标准库；需 AnythingLLM Developer API Key |

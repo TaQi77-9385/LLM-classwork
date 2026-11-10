@@ -3,3 +3,19 @@ __pycache__/
 *.py[cod]
 .venv/
 .pytest_cache/
+.agents/context/
+.agents/sessions/
+
+# 运行时 MCP 配置含私有端点，入库仅保留示例
+.mcp.json
+
+# 打包 / 构建产物与缓存
+build/
+dist/
+installer/
+.unifypy/
+*.spec.bak
+_launch_log.txt
+
+# 技能自带的可执行程序体积过大，不入库
+*.exe

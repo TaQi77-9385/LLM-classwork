@@ -8,10 +8,10 @@
 __all__ = ["create_session", "load_settings"]
 
 
-def create_session(settings):
+def create_session(settings, project_root=None):
     from core.session import create_session as _create
 
-    return _create(settings)
+    return _create(settings, project_root)
 
 
 def load_settings(path=None):

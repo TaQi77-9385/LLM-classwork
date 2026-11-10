@@ -8,6 +8,8 @@ SEARCH_URL_PATH = "/v2/ai_search/web_search"
 QUERY_UNIT_LIMIT = 72
 TOP_K = 10
 SNIPPET_LIMIT = 500
+CONNECT_TIMEOUT = 10
+READ_TIMEOUT = 30
 
 SCHEMA = {
     "type": "function",
@@ -65,7 +67,7 @@ def _search(query: str) -> str:
                 "edition": "standard",
                 "resource_type_filter": [{"type": "web", "top_k": TOP_K}],
             },
-            timeout=(10, 30),
+            timeout=(CONNECT_TIMEOUT, READ_TIMEOUT),
         )
     except requests.Timeout:
         return "网络请求超时，百度千帆搜索没有在限定时间内响应。请稍后重试。"

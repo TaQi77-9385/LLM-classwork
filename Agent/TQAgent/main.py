@@ -6,10 +6,13 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+STARTUP_ROOT = Path.cwd()
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from core.config import ConfigError, load_settings
+import tui.app  # 静态导入，打包时才会把终端界面一起收进去
+
+from core.config import ConfigError, ensure_config, load_settings
 from core.session import create_session
 
 # 每个前端是与 core、tui 并列的目录，并提供 run(session, model_name)。
@@ -21,7 +24,7 @@ FRONTENDS = {
 }
 
 
-def launch_ui(name: str, session, model_name: str) -> int:
+def launch_ui(name: str, session, model_name: str, *, config_created: bool = False) -> int:
     try:
         module = importlib.import_module(FRONTENDS[name])
     except ModuleNotFoundError as exc:
@@ -33,7 +36,7 @@ def launch_ui(name: str, session, model_name: str) -> int:
             print(f"{name} 界面还没有实现。当前可用：tui", file=sys.stderr)
             return 2
         raise
-    module.run(session, model_name)
+    module.run(session, model_name, config_created=config_created)
     return 0
 
 
@@ -53,11 +56,16 @@ def main(argv: list[str] | None = None) -> int:
     except ModuleNotFoundError:
         return launch_ui(args.ui, None, "")
     try:
-        settings = load_settings(args.config)
+        if args.config is not None:
+            settings = load_settings(args.config)
+            created = False
+        else:
+            settings, created = ensure_config()
     except ConfigError as exc:
         print(exc, file=sys.stderr)
         return 2
-    return launch_ui(args.ui, create_session(settings), settings.model)
+    session = create_session(settings, STARTUP_ROOT, mcp_mode="async")
+    return launch_ui(args.ui, session, settings.model, config_created=created)
 
 
 if __name__ == "__main__":

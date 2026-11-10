@@ -20,10 +20,29 @@ Screen {
     background: #171c24;
 }
 
+#banner.-context-warn {
+    border: round #e76f51;
+    background: #241616;
+}
+
 #transcript {
     height: 1fr;
     padding: 1 1 0 1;
     background: #121418;
+}
+
+#slash-panel {
+    height: auto;
+    max-height: 12;
+    margin: 0 1;
+    padding: 0 1;
+    border: round #3d5a80;
+    background: #151a22;
+    color: #d7dde6;
+}
+
+#slash-panel.-hidden {
+    display: none;
 }
 
 #prompt {
@@ -80,4 +99,30 @@ Screen {
     padding: 1 2;
     background: #161b22;
     border: round #3d5a80;
+}
+
+#help-hint {
+    margin-top: 1;
+    color: #e9c46a;
+}
+
+#config-dialog,
+#resume-dialog {
+    width: 72;
+    height: auto;
+    max-height: 85%;
+    margin: 2 4;
+    padding: 1 2;
+    background: #161b22;
+    border: round #e9c46a;
+}
+
+#resume-title {
+    margin-bottom: 1;
+    color: #e9c46a;
+}
+
+#resume-list {
+    height: auto;
+    max-height: 20;
 }

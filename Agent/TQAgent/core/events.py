@@ -30,4 +30,28 @@ class AgentError:
     message: str
 
 
-AgentEvent = TextDelta | ToolStarted | ToolFinished | TurnFinished | AgentError
+@dataclass(frozen=True)
+class ContextWarning:
+    """上下文占用达到阈值时提示用户执行 /compact。"""
+
+    used: int
+    window: int
+    ratio: float
+    message: str
+
+
+@dataclass(frozen=True)
+class CompactFinished:
+    archive_id: str
+    summary: str
+
+
+AgentEvent = (
+    TextDelta
+    | ToolStarted
+    | ToolFinished
+    | TurnFinished
+    | AgentError
+    | ContextWarning
+    | CompactFinished
+)

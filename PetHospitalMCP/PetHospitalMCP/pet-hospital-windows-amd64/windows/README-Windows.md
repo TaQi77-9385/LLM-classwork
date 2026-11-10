@@ -2,6 +2,10 @@
 
 ## 一、运行（三步）
 
+> 仓库源码不包含预编译的 `pethospital.exe` 与示例 `data/pet.db`：请先在
+> `pet-hospital-mcp-teaching-main/pet-hospital-mcp-teaching-main` 目录执行
+> `go build -o pethospital.exe .`（或 `go run .`），数据库会在首次运行时自动创建。
+
 1. 把整个 `windows` 文件夹复制到 Windows 电脑上（任意位置，例如 `D:\宠物医院\`）
 2. **双击 `pethospital.exe`**
 3. 在浏览器中手动打开 <http://127.0.0.1:8080/>

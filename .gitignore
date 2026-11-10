@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# 本地配置与密钥（使用各目录的 config.example.ini 作为模板）
+config.ini
+
+# 预编译产物与本地数据库（由源码构建 / 首次运行自动生成）
+PetHospitalMCP/**/pethospital.exe
+PetHospitalMCP/**/data/*.db
